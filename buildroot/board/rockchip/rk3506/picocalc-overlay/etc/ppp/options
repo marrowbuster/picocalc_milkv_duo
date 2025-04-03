@@ -1,0 +1,9 @@
+noauth
+nocrtscts
+xonxoff
+passive
+local
+maxfail 0
+10.0.5.2:10.0.5.1
+debug
+dump

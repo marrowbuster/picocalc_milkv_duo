@@ -1,1 +1,2 @@
-# picocalc_luckfox_lyra
+# PicoCalc Luckfox Lyra
+Based on luckfox-lyra-sdk-250311

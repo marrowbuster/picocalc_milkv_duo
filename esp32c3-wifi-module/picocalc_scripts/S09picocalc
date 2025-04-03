@@ -1,0 +1,31 @@
+#!/bin/sh
+#
+
+case "$1" in
+    start)
+	insmod /usr/lib/ili9488_fb.ko
+	insmod /usr/lib/picocalc_kbd.ko
+
+	# setup uart1 pin
+	# # GPIO1 D2 RMIO30
+	iomux 1 26 16
+	# # GPIO1 C3 RMIO28
+	iomux 1 19 17
+	# setup esp32c3 reset pin
+	echo 57 > /sys/class/gpio/export  
+	echo out > /sys/class/gpio/gpio57/direction
+	echo 1 > /sys/class/gpio/gpio57/value
+	echo 57 > /sys/class/gpio/unexport
+
+	dmesg -n 1
+        ;;
+    stop)
+        ;;
+    *)
+        echo "Usage: $0 {start|stop}"
+        exit 1
+        ;;
+esac
+
+
+exit 0
