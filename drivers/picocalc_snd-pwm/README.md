@@ -26,3 +26,8 @@ Device Tree
             assigned-clocks = <&cru CLK_PWM0>;
             assigned-clock-rates = <100000000>;
     };
+
+/etc/asound.conf
+
+    defaults.pcm.card 0
+    defaults.ctl.card 0
