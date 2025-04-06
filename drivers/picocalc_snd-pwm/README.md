@@ -3,7 +3,12 @@ Require hardware modification
     1.cut the metal pin of GPIO4_B3 on luckfox lyra
     2.solder a wire from GP2 to GP27(PWM_R) on PicoCalc
 
+![IMG_20250406_111909](https://github.com/user-attachments/assets/13e0292c-dabb-4df7-848b-00bd97503ad1)
+![IMG_20250406_111938](https://github.com/user-attachments/assets/0f97c4cb-1fb3-41f6-89ad-25703fafab0d)
+
 Now RMIO_12 can be used to output audio via hardware pwm.
+
+[https://www.youtube.com/shorts/p9XIFrtVFWE](https://www.youtube.com/shorts/p9XIFrtVFWE)
 
 Device Tree
 
