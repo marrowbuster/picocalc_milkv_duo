@@ -26,6 +26,9 @@
 
 #define KBD_FIFO_SIZE				31
 
+static uint64_t mouse_fast_move_thr_time = 150000000ull;
+static int8_t mouse_move_step = 1;
+
 // From keyboard firmware source
 enum pico_key_state
 {
@@ -42,6 +45,11 @@ struct key_fifo_item
 	uint8_t scancode;
 };
 
+#define MOUSE_MOVE_LEFT  (1 << 1)
+#define MOUSE_MOVE_RIGHT (1 << 2)
+#define MOUSE_MOVE_UP    (1 << 3)
+#define MOUSE_MOVE_DOWN  (1 << 4)
+
 struct kbd_ctx
 {
 	struct work_struct work_struct;
@@ -57,6 +65,9 @@ struct kbd_ctx
 	uint8_t key_fifo_count;
 	struct key_fifo_item key_fifo_data[KBD_FIFO_SIZE];
 	uint64_t last_keypress_at;
+        
+        int mouse_mode;
+        uint8_t mouse_move_dir;
 };
 
 // Parse 0 to 255 from string
@@ -202,6 +213,96 @@ static void key_report_event(struct kbd_ctx* ctx,
 		return;
 	}
 
+        /* right shift */
+        if (ev->scancode == 0xA3)
+        {
+            if (ev->state == KEY_STATE_PRESSED)
+            {
+                ctx->mouse_mode = !ctx->mouse_mode;
+            }
+            return;
+        }
+
+        if (ctx->mouse_mode)
+        {
+            switch(ev->scancode)
+            {
+            /* KEY_BACKSPACE */
+/*
+            case '\b':
+                  if (ev->state == KEY_STATE_PRESSED)
+                  {
+                      input_report_abs(ctx->input_dev, ABS_X, 0);
+                      input_report_abs(ctx->input_dev, ABS_Y, 0);
+                  } 
+                  return;
+*/
+            /* KEY_RIGHT */
+            case 0xb7:
+                  if (ev->state == KEY_STATE_PRESSED)
+                  {
+                      if (!(ctx->mouse_move_dir & MOUSE_MOVE_RIGHT))
+	                  ctx->last_keypress_at = ktime_get_boottime_ns();
+                      ctx->mouse_move_dir |= MOUSE_MOVE_RIGHT;
+                  }
+                  else if (ev->state == KEY_STATE_RELEASED)
+                  {
+                      ctx->mouse_move_dir &= ~MOUSE_MOVE_RIGHT;
+                  }
+                  return;
+            /* KEY_LEFT */
+            case 0xb4:
+                  if (ev->state == KEY_STATE_PRESSED)
+                  {
+                      if (!(ctx->mouse_move_dir & MOUSE_MOVE_LEFT))
+	                  ctx->last_keypress_at = ktime_get_boottime_ns();
+                      ctx->mouse_move_dir |= MOUSE_MOVE_LEFT;
+                  }
+                  else if (ev->state == KEY_STATE_RELEASED)
+                  {
+	              ctx->last_keypress_at = ktime_get_boottime_ns();
+                      ctx->mouse_move_dir &= ~MOUSE_MOVE_LEFT;
+                  }
+                  return;
+            /* KEY_DOWN */
+            case 0xb6:
+                  if (ev->state == KEY_STATE_PRESSED)
+                  {
+                      if (!(ctx->mouse_move_dir & MOUSE_MOVE_DOWN))
+	                  ctx->last_keypress_at = ktime_get_boottime_ns();
+                      ctx->mouse_move_dir |= MOUSE_MOVE_DOWN;
+                  }
+                  else if (ev->state == KEY_STATE_RELEASED)
+                  {
+                      ctx->mouse_move_dir &= ~MOUSE_MOVE_DOWN;
+                  }
+                  return;
+            /* KEY_UP */
+            case 0xb5:
+                  if (ev->state == KEY_STATE_PRESSED)
+                  {
+                      if (!(ctx->mouse_move_dir & MOUSE_MOVE_UP))
+	                  ctx->last_keypress_at = ktime_get_boottime_ns();
+                      ctx->mouse_move_dir |= MOUSE_MOVE_UP;
+                  }
+                  else if (ev->state == KEY_STATE_RELEASED)
+                  {
+                      ctx->mouse_move_dir &= ~MOUSE_MOVE_UP;
+                  }
+                  return;
+            /* KEY_RIGHTBRACE */
+            case ']':
+	          input_report_key(ctx->input_dev, BTN_LEFT, ev->state == KEY_STATE_PRESSED);
+                  return;
+            /* KEY_LEFTBRACE */
+            case '[':
+	          input_report_key(ctx->input_dev, BTN_RIGHT, ev->state == KEY_STATE_PRESSED);
+                  return;
+            default:
+                     break;
+            }
+        }
+
 	// Post key scan event
 	input_event(ctx->input_dev, EV_MSC, MSC_SCAN, ev->scancode);
 
@@ -292,6 +393,40 @@ static void input_workqueue_handler(struct work_struct *work_struct_ptr)
 	for (fifo_idx = 0; fifo_idx < ctx->key_fifo_count; fifo_idx++) {
 		key_report_event(ctx, &ctx->key_fifo_data[fifo_idx]);
 	}
+
+	if (ctx->mouse_mode)
+        {
+            uint64_t press_time = ktime_get_boottime_ns() - ctx->last_keypress_at;
+            if (press_time <= mouse_fast_move_thr_time)
+            {
+                mouse_move_step = 1;
+            }
+            else if (press_time <= 3 * mouse_fast_move_thr_time)
+            {
+                mouse_move_step = 2;
+            }
+            else
+            {
+                mouse_move_step = 4;
+            }
+
+            if (ctx->mouse_move_dir & MOUSE_MOVE_LEFT)
+            {
+                input_report_rel(ctx->input_dev, REL_X, -mouse_move_step);
+            } 
+            if (ctx->mouse_move_dir & MOUSE_MOVE_RIGHT)
+            {
+                input_report_rel(ctx->input_dev, REL_X, mouse_move_step);
+            } 
+            if (ctx->mouse_move_dir & MOUSE_MOVE_DOWN)
+            {
+                input_report_rel(ctx->input_dev, REL_Y, mouse_move_step);
+            } 
+            if (ctx->mouse_move_dir & MOUSE_MOVE_UP)
+            {
+                input_report_rel(ctx->input_dev, REL_Y, -mouse_move_step);
+            } 
+        }
 
 	// Reset pending FIFO count
 	ctx->key_fifo_count = 0;
@@ -392,12 +527,16 @@ int input_probe(struct i2c_client* i2c_client)
 
 	// Set input device capabilities
 	input_set_capability(g_ctx->input_dev, EV_MSC, MSC_SCAN);
-    /*
 	input_set_capability(g_ctx->input_dev, EV_REL, REL_X);
 	input_set_capability(g_ctx->input_dev, EV_REL, REL_Y);
+/*
+	input_set_capability(g_ctx->input_dev, EV_ABS, ABS_X);
+	input_set_capability(g_ctx->input_dev, EV_ABS, ABS_Y);
+        input_set_abs_params(g_ctx->input_dev, ABS_X, 0, 320, 4, 8);
+        input_set_abs_params(g_ctx->input_dev, ABS_Y, 0, 320, 4, 8);
+*/
 	input_set_capability(g_ctx->input_dev, EV_KEY, BTN_LEFT);
 	input_set_capability(g_ctx->input_dev, EV_KEY, BTN_RIGHT);
-    */
 
 	// Request IRQ handler for I2C client and initialize workqueue
     /*
@@ -410,6 +549,8 @@ int input_probe(struct i2c_client* i2c_client)
 		return rc;
 	}
     */
+        g_ctx->mouse_mode = FALSE;
+        g_ctx->mouse_move_dir = 0;
 	INIT_WORK(&g_ctx->work_struct, input_workqueue_handler);
     g_kbd_timer.expires = jiffies + HZ / 128;
     add_timer(&g_kbd_timer);
