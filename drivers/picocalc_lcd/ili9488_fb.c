@@ -516,6 +516,7 @@ static void update_display(struct ili9488_par *par, unsigned int start_line,
      * when this was called, driver should wait for busy pin comes low
      * until next frame refreshed
      */
+    //if (start_line >= end_line) {
     if (start_line > end_line) {
         dev_dbg(par->dev, "start line never should bigger than end line !!!!!\n");
         start_line = 0;
@@ -602,9 +603,10 @@ static void ili9488_deferred_io(struct fb_info *info, struct list_head *pagelist
     }
 
     dev_dbg(info->device,
-            "%s, dirty_line  start : %d, end : %d\n",
-            __func__, dirty_lines_start, dirty_lines_end);
-    update_display(par, dirty_lines_start, dirty_lines_end);
+            "%s, count %d dirty_line  start : %d, end : %d\n",
+            __func__, count, dirty_lines_start, dirty_lines_end);
+    //update_display(par, dirty_lines_start, dirty_lines_end);
+    update_display(par, 0, par->fbinfo->var.yres - 1);
 }
 
 static void ili9488_fb_fillrect(struct fb_info *info,
