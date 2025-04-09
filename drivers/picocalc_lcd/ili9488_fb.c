@@ -516,7 +516,6 @@ static void update_display(struct ili9488_par *par, unsigned int start_line,
      * when this was called, driver should wait for busy pin comes low
      * until next frame refreshed
      */
-    //if (start_line >= end_line) {
     if (start_line > end_line) {
         dev_dbg(par->dev, "start line never should bigger than end line !!!!!\n");
         start_line = 0;
@@ -571,9 +570,8 @@ static void ili9488_deferred_io(struct fb_info *info, struct list_head *pagelist
 {
     struct ili9488_par *par = info->par;
     unsigned int dirty_lines_start, dirty_lines_end;
+    struct fb_deferred_io_pageref *pageref;
     unsigned int y_low = 0, y_high = 0;
-    unsigned long index;
-    struct page *page;
     int count = 0;
 
     spin_lock(&par->dirty_lock);
@@ -585,14 +583,13 @@ static void ili9488_deferred_io(struct fb_info *info, struct list_head *pagelist
     par->dirty_lines_end = 0;
     spin_unlock(&par->dirty_lock);
 
-    list_for_each_entry(page, pagelist, lru) {
+    list_for_each_entry(pageref, pagelist, list) {
         count++;
-        index = page->index << PAGE_SHIFT;
-        y_low = index / info->fix.line_length;
-        y_high = (index + PAGE_SIZE - 1) / info->fix.line_length;
+        y_low = pageref->offset / info->fix.line_length;
+        y_high = (pageref->offset + PAGE_SIZE - 1) / info->fix.line_length;
         dev_dbg(info->device,
                 "page->index=%lu y_low=%d y_high=%d\n",
-                page->index, y_low, y_high);
+                pageref->page->index, y_low, y_high);
 
         if (y_high > info->var.yres - 1)
             y_high = info->var.yres - 1;
@@ -605,8 +602,7 @@ static void ili9488_deferred_io(struct fb_info *info, struct list_head *pagelist
     dev_dbg(info->device,
             "%s, count %d dirty_line  start : %d, end : %d\n",
             __func__, count, dirty_lines_start, dirty_lines_end);
-    //update_display(par, dirty_lines_start, dirty_lines_end);
-    update_display(par, 0, par->fbinfo->var.yres - 1);
+    update_display(par, dirty_lines_start, dirty_lines_end);
 }
 
 static void ili9488_fb_fillrect(struct fb_info *info,
