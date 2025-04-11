@@ -17,6 +17,7 @@
 #define REG_ID_BAT (0x0b)
 #define REG_ID_BKL (0x05)
 #define REG_ID_FIF (0x09)
+#define REG_ID_BK2 (0x0A)
 
 #define PICOCALC_WRITE_MASK (1<<7)
 
@@ -652,6 +653,15 @@ struct kobj_attribute battery_percent_attr
 	= __ATTR(battery_percent, 0444, battery_percent_show, NULL);
 
 // Keyboard backlight value
+static ssize_t __used keyboard_backlight_store(struct kobject *kobj,
+	struct kobj_attribute *attr, char const *buf, size_t count)
+{
+	return parse_and_write_i2c_u8(buf, count, REG_ID_BK2);
+}
+struct kobj_attribute keyboard_backlight_attr
+	= __ATTR(keyboard_backlight, 0220, NULL, keyboard_backlight_store);
+
+// screen backlight value
 static ssize_t __used screen_backlight_store(struct kobject *kobj,
 	struct kobj_attribute *attr, char const *buf, size_t count)
 {
@@ -692,6 +702,7 @@ static struct attribute *picocalc_attrs[] = {
 	&battery_percent_attr.attr,
 	&screen_backlight_attr.attr,
 	&last_keypress_attr.attr,
+	&keyboard_backlight_attr.attr,
 	NULL,
 };
 static struct attribute_group picocalc_attr_group = {
