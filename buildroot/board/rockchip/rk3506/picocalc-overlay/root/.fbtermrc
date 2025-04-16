@@ -24,7 +24,7 @@ history-lines=1000
 
 # up to 5 additional text encodings, multiple encodings must be seperated by ','
 # run 'iconv --list' to get available encodings.
-text-encodings=
+text-encodings=utf-8
 
 # cursor shape: 0 = underline, 1 = block
 # cursor flash interval in milliseconds, 0 means disable flashing
@@ -39,7 +39,7 @@ word-chars=._-
 screen-rotate=0
 
 # specify the favorite input method program to run
-input-method=
+input-method=fcitx-fbterm
 
 # treat ambiguous width characters as wide
 #ambiguous-wide=yes

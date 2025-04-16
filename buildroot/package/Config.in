@@ -2903,6 +2903,11 @@ menu "PicoCalc"
         source "package/dante-preload/Config.in"
         source "package/aerc/Config.in"
         source "package/cmatrix/Config.in"
+        source "package/sdl2_sound/Config.in"
+        source "package/dosbox/Config.in"
+        source "package/fcitx/Config.in"
+        source "package/fcitx-fbterm/Config.in"
+        source "package/extra-cmake-modules/Config.in"
 endmenu
 
 endmenu
