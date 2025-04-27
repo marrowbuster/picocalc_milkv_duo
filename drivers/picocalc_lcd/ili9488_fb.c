@@ -980,7 +980,7 @@ static const struct ili9488_display display = {
     .xres = 320,
     .yres = 320,
     .bpp = 16,
-    .fps = 45,
+    .fps = 30,
 };
 
 static const struct ili9488_display display_3bit = {
