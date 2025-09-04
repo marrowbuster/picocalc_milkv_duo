@@ -2,10 +2,10 @@
 # local kernel build dir
 # KERN_DIR ?= /lib/modules/$(shell uname -r)/build
 
-# users kernel dir
-ARCH := arm
-CROSS_COMPILE := /home/luckfox/luckfox-lyra-sdk-250311/prebuilts/gcc/linux-x86/arm/gcc-arm-10.3-2021.07-x86_64-arm-none-linux-gnueabihf/bin/arm-none-linux-gnueabihf-
-KERN_DIR := /home/luckfox/luckfox-lyra-sdk-250311/kernel-6.1
+# kernel dir
+ARCH := riscv
+CROSS_COMPILE := ../../duo-buildroot-sdk-v2/host-tools/gcc/riscv64-linux-musl-x86_64/bin/riscv64-unknown-linux-musl-
+KERN_DIR := ../../linux_5.10
 
 MODULE_NAME = picocalc_kbd
 
